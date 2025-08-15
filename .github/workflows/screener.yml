@@ -1,0 +1,35 @@
+name: NSE Screener Auto Run
+
+on:
+  schedule:
+    - cron: "30 4 * * *"  # Runs daily at 10:00 IST
+  workflow_dispatch:      # Allows manual trigger
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run screener
+        run: |
+          mkdir -p output
+          python screener.py
+
+      - name: Upload output files
+        uses: actions/upload-artifact@v4
+        with:
+          name: nse-screener-output
+          path: output/*
+          retention-days: 7
