@@ -1,0 +1,49 @@
+name: NSE Screener Auto Run
+
+on:
+  schedule:
+    # Daily at 10:00 IST = 04:30 UTC
+    - cron: "30 4 * * *"
+  workflow_dispatch:  # Manual "Run workflow" button in Actions tab
+
+permissions:
+  contents: write  # needed if you use the optional commit step
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run screener
+        run: |
+          mkdir -p output
+          python screener.py
+
+      - name: Upload artifacts (CSV/PDF)
+        uses: actions/upload-artifact@v4
+        with:
+          name: nse-screener-output
+          path: output/*
+          retention-days: 7
+
+      # (Optional) Commit the output back to the repo
+      - name: Commit results to repo
+        if: ${{ always() }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/* || true
+          git commit -m "Auto-run: $(date -u +'%Y-%m-%d %H:%M:%S') UTC" || echo "Nothing to commit"
+          git push
